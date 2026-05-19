@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mautic Manual Sync | Zero-Auto-Track</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; padding: 40px; display: flex; justify-content: center; }
+        .box { background: white; padding: 35px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 100%; max-width: 450px; border-top: 5px solid #d9534f; }
+        h2 { color: #333; font-size: 22px; margin-top: 0; }
+        p { font-size: 13px; color: #666; margin-bottom: 20px; }
+        label { display: block; font-weight: 600; font-size: 13px; margin: 15px 0 5px; color: #444; }
+        input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; margin-bottom: 5px; }
+        input:focus { border-color: #007cba; outline: none; }
+        button { 
+            width: 100%; padding: 16px; background: #d9534f; color: white; border: none; 
+            border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 20px; font-size: 16px;
+            transition: background 0.3s;
+        }
+        button:hover { background: #c9302c; }
+        #log { 
+            margin-top: 20px; background: #1a1a1a; color: #00ff00; padding: 12px; 
+            border-radius: 6px; font-family: 'Courier New', monospace; font-size: 11px; 
+            height: 280px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>Manual CRM Injector</h2>
+    <p>No data is sent until you provide an email and click the button below.</p>
+    
+    <label>Target Email ID:</label>
+    <input type="email" id="targetEmail" placeholder="Enter owner@restaurant.com">
+    
+    <label>Tags to Assign:</label>
+    <input type="text" id="targetTags" placeholder="e.g. hot_lead, pos_demo">
+    
+    <button onclick="initializeAndSync()">Force Sync to Mautic</button>
+    
+    <div id="log">Status: Idle (No tracking active)</div>
+</div>
+
+<script>
+    function writeLog(msg) {
+        const consoleObj = document.getElementById('log');
+        consoleObj.innerHTML += `> ${new Date().toLocaleTimeString()}: ${msg}<br>`;
+        consoleObj.scrollTop = consoleObj.scrollHeight;
+    }
+
+    // Helper function to read browser cookies
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    let isListenerAttached = false;
+    let syncStage = 'idle'; // Tracking internal execution states
+
+    function startSyncHandshake(email, tags) {
+        writeLog("Step 1: Clearing old cookies and generating mandatory MTC ID...");
+        
+        // A. Reset identity parameters cleanly
+        mt('set', 'id', null);
+        syncStage = 'generating_id';
+
+        // B. Trigger an initial clean ping to force Mautic to issue a tracking ID
+        mt('send', 'pageview'); 
+    }
+
+    function initializeAndSync() {
+        const email = document.getElementById('targetEmail').value;
+        const tags = document.getElementById('targetTags').value;
+
+        if (!email) {
+            alert("Please enter an Email ID first.");
+            return;
+        }
+
+        // Attach central server state manager listener exactly ONCE
+        if (!isListenerAttached) {
+            document.addEventListener('mauticPageEventDelivered', function () {
+                
+                // If we were just forcing a fresh tracking ID generation, capture it and fire payload
+                if (syncStage === 'generating_id') {
+                    const freshMtcId = getCookie('mtc_id');
+                    
+                    if (!freshMtcId) {
+                        writeLog("<span style='color: #ff0000;'>Error: Failed to obtain necessary mtc_id. Aborting.</span>");
+                        syncStage = 'idle';
+                        return;
+                    }
+
+                    writeLog(`Step 2: Mandatory ID Obtained [${freshMtcId}]. Constructing verified payload...`);
+                    syncStage = 'sending_payload';
+
+                    const article = "Labor Cost Trends 2025";
+                    const forcedUrl = `${window.location.origin}${window.location.pathname}?article=${encodeURIComponent(article)}&category=Content&action=Read&t=${Date.now()}`;
+
+                    // Explicitly inject mtc_id as a top-level requirement inside the active payload object
+                    const payload = {
+                        'mtc_id': freshMtcId, 
+                        'mt_event': article,
+                        'page_title': article,
+                        'page_url': forcedUrl,
+                        'email': email,
+                        'tags': tags
+                    };
+
+                    writeLog(`Full Payload Transmitted:<br><span style="color: #00bfff;">${JSON.stringify(payload, null, 2)}</span>`);
+                    
+                    // Dispatch final structural sync
+                    mt('send', 'pageview', payload);
+
+                } else if (syncStage === 'sending_payload') {
+                    // Confirm final operational delivery from Mautic Instance
+                    writeLog(`<span style="color: #ffff00;">Mautic Server Sync Confirmed: Record safely mapped and finalized!</span>`);
+                    syncStage = 'idle'; 
+                }
+            });
+            isListenerAttached = true;
+        }
+
+        // Handle reuse or instantiation safely
+        if (typeof mt === 'function' && window.MauticTrackingObject) {
+            writeLog("Mautic Library already active. Starting sync loop...");
+            startSyncHandshake(email, tags);
+            return;
+        }
+
+        writeLog("Initializing Mautic Library...");
+
+        (function(w,d,t,u,n,a,m){
+            w['MauticTrackingObject']=n;
+            w[n]=w[n]||function(){(w[n].q=w[n].q||[]).push(arguments)},
+            a=d.createElement(t),
+            m=d.getElementsByTagName(t)[0];
+            a.async=1; a.src=u; 
+            
+            a.onload = function() {
+                writeLog("Library Loaded completely.");
+                startSyncHandshake(email, tags);
+            };
+            
+            m.parentNode.insertBefore(a,m);
+        })(window,document,'script','https://d2.restaurantassociation.com/mtc.js','mt');
+    }
+</script>
+
+</body>
+</html>
