@@ -2,150 +2,158 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Mautic Manual Sync | Zero-Auto-Track</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strict Contact Target Dispatcher (API Direct Mode)</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; padding: 40px; display: flex; justify-content: center; }
-        .box { background: white; padding: 35px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 100%; max-width: 450px; border-top: 5px solid #d9534f; }
-        h2 { color: #333; font-size: 22px; margin-top: 0; }
-        p { font-size: 13px; color: #666; margin-bottom: 20px; }
-        label { display: block; font-weight: 600; font-size: 13px; margin: 15px 0 5px; color: #444; }
-        input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; margin-bottom: 5px; }
-        input:focus { border-color: #007cba; outline: none; }
-        button { 
-            width: 100%; padding: 16px; background: #d9534f; color: white; border: none; 
-            border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 20px; font-size: 16px;
-            transition: background 0.3s;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 30px;
+            background-color: #0f172a;
+            color: #e2e8f0;
         }
-        button:hover { background: #c9302c; }
-        #log { 
-            margin-top: 20px; background: #1a1a1a; color: #00ff00; padding: 12px; 
-            border-radius: 6px; font-family: 'Courier New', monospace; font-size: 11px; 
-            height: 280px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+        }
+        h2 { margin-top: 0; color: #38bdf8; font-size: 1.5rem; border-bottom: 2px solid #334155; padding-bottom: 10px; }
+        .form-group { margin-bottom: 18px; }
+        .row { display: flex; gap: 15px; }
+        .col { flex: 1; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+        input[type="text"], input[type="email"], input[type="number"] {
+            width: 100%; padding: 12px; box-sizing: border-box; background: #0f172a; border: 1px solid #475569; border-radius: 6px; color: #f8fafc; font-size: 0.95rem;
+        }
+        input:focus { border-color: #38bdf8; outline: none; }
+        .info-box {
+            background-color: #0369a1; border: 1px solid #0284c7; color: #e0f2fe; padding: 12px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 15px;
+        }
+        button {
+            background-color: #10b981; color: white; padding: 14px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: bold; width: 100%; transition: background 0.2s;
+        }
+        button:hover { background-color: #059669; }
+        .log-title { margin-top: 25px; font-weight: bold; color: #38bdf8; font-size: 0.9em; }
+        #log-window {
+            margin-top: 10px; background: #020617; color: #4ade80; padding: 18px; border-radius: 6px; font-family: "Fira Code", "Courier New", monospace; font-size: 0.85rem; white-space: pre-wrap; max-height: 400px; overflow-y: auto; border: 1px solid #1e293b; line-height: 1.5;
         }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h2>Manual CRM Injector</h2>
-    <p>No data is sent until you provide an email and click the button below.</p>
+<div class="container">
+    <h2>Strict API Direct Event Dispatcher</h2>
     
-    <label>Target Email ID:</label>
-    <input type="email" id="targetEmail" placeholder="Enter owner@restaurant.com">
-    
-    <label>Tags to Assign:</label>
-    <input type="text" id="targetTags" placeholder="e.g. hot_lead, pos_demo">
-    
-    <button onclick="initializeAndSync()">Force Sync to Mautic</button>
-    
-    <div id="log">Status: Idle (No tracking active)</div>
+    <div class="info-box">
+        🚀 <strong>Direct Post Active:</strong> This method completely bypasses <code>mtc.js</code> and drops tracking cookies. It talks directly to the tracking endpoint to force target updates by explicit Mautic ID numbers.
+    </div>
+
+    <div class="row">
+        <div class="col form-group">
+            <label for="mtcIdTarget">Target Mautic Contact ID:</label>
+            <input type="number" id="mtcIdTarget" value="12345">
+        </div>
+        <div class="col form-group">
+            <label for="email">Contact Email Reference:</label>
+            <input type="email" id="email" value="target.contact@example.com">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="eventName">Manual Event Name (Page Title):</label>
+        <input type="text" id="eventName" value="POS Subscription Renewed">
+    </div>
+    <div class="form-group">
+        <label for="eventType">Manual Event Type (Path Parameter):</label>
+        <input type="text" id="eventType" value="Billing_Update">
+    </div>
+    <div class="form-group">
+        <label for="tags">Manual Profile Tags (Comma Separated):</label>
+        <input type="text" id="tags" value="active-subscriber, renewal-2026">
+    </div>
+
+    <button onclick="sendDirectMauticPost()">Execute Direct Post Update</button>
+
+    <div class="log-title">Live Server Response & Payload Logs:</div>
+    <div id="log-window">System initialized. Ready for forced API transmission...</div>
 </div>
 
 <script>
-    function writeLog(msg) {
-        const consoleObj = document.getElementById('log');
-        consoleObj.innerHTML += `> ${new Date().toLocaleTimeString()}: ${msg}<br>`;
-        consoleObj.scrollTop = consoleObj.scrollHeight;
+    function printLog(message, data = null) {
+        const logWindow = document.getElementById('log-window');
+        let timestamp = `[${new Date().toLocaleTimeString()}]`;
+        let logText = `${timestamp} ${message}\n`;
+        if (data) {
+            logText += typeof data === 'object' ? JSON.stringify(data, null, 2) + '\n' : data + '\n';
+        }
+        logWindow.innerText += `\n${logText}`;
+        logWindow.scrollTop = logWindow.scrollHeight;
+        console.log(message, data || '');
     }
 
-    // Helper function to read browser cookies
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-        return null;
-    }
-
-    let isListenerAttached = false;
-    let syncStage = 'idle'; // Tracking internal execution states
-
-    function startSyncHandshake(email, tags) {
-        writeLog("Step 1: Clearing old cookies and generating mandatory MTC ID...");
+    /**
+     * Executes an isolated HTTP POST request directly targeting Mautic backend engine endpoints
+     */
+    async function sendDirectMauticPost() {
+        const targetId = document.getElementById('mtcIdTarget').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const eventName = document.getElementById('eventName').value.trim();
+        const eventType = document.getElementById('eventType').value.trim();
+        const tagsInput = document.getElementById('tags').value;
         
-        // A. Reset identity parameters cleanly
-        mt('set', 'id', null);
-        syncStage = 'generating_id';
+        const tagsArray = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
 
-        // B. Trigger an initial clean ping to force Mautic to issue a tracking ID
-        mt('send', 'pageview'); 
-    }
-
-    function initializeAndSync() {
-        const email = document.getElementById('targetEmail').value;
-        const tags = document.getElementById('targetTags').value;
-
-        if (!email) {
-            alert("Please enter an Email ID first.");
+        if (!targetId) {
+            alert("A target Contact ID number is mandatory to execute an isolated override request.");
             return;
         }
 
-        // Attach central server state manager listener exactly ONCE
-        if (!isListenerAttached) {
-            document.addEventListener('mauticPageEventDelivered', function () {
-                
-                // If we were just forcing a fresh tracking ID generation, capture it and fire payload
-                if (syncStage === 'generating_id') {
-                    const freshMtcId = getCookie('mtc_id');
-                    
-                    if (!freshMtcId) {
-                        writeLog("<span style='color: #ff0000;'>Error: Failed to obtain necessary mtc_id. Aborting.</span>");
-                        syncStage = 'idle';
-                        return;
-                    }
+        const endpointUrl = 'https://g1.restaurantassociation.com/mtc/event';
 
-                    writeLog(`Step 2: Mandatory ID Obtained [${freshMtcId}]. Constructing verified payload...`);
-                    syncStage = 'sending_payload';
+        // Clean, standalone tracker JSON mapping matching standard back-end parameter formats
+        const rawPayload = {
+            id: parseInt(targetId, 10),
+            email: email,
+            page_title: eventName,
+            page_url: `https://g1.restaurantassociation.com/isolated-event/${encodeURIComponent(eventType.toLowerCase())}`,
+            tags: tagsArray
+        };
 
-                    const article = "Labor Cost Trends 2025";
-                    const forcedUrl = `${window.location.origin}${window.location.pathname}?article=${encodeURIComponent(article)}&category=Content&action=Read&t=${Date.now()}`;
+        printLog(`📡 Preparing outbound Direct XHR request payload targeting record: [${targetId}]`);
+        printLog(`🔗 Endpoint Target: ${endpointUrl}`);
+        printLog(`📦 Body payload data stream content:`, rawPayload);
 
-                    // Explicitly inject mtc_id as a top-level requirement inside the active payload object
-                    const payload = {
-                        'mtc_id': freshMtcId, 
-                        'mt_event': article,
-                        'page_title': article,
-                        'page_url': forcedUrl,
-                        'email': email,
-                        'tags': tags
-                    };
-
-                    writeLog(`Full Payload Transmitted:<br><span style="color: #00bfff;">${JSON.stringify(payload, null, 2)}</span>`);
-                    
-                    // Dispatch final structural sync
-                    mt('send', 'pageview', payload);
-
-                } else if (syncStage === 'sending_payload') {
-                    // Confirm final operational delivery from Mautic Instance
-                    writeLog(`<span style="color: #ffff00;">Mautic Server Sync Confirmed: Record safely mapped and finalized!</span>`);
-                    syncStage = 'idle'; 
-                }
+        try {
+            // Using standard JavaScript fetch engine to submit payload parameters completely separate from session cookies
+            const response = await fetch(endpointUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(rawPayload)
             });
-            isListenerAttached = true;
-        }
 
-        // Handle reuse or instantiation safely
-        if (typeof mt === 'function' && window.MauticTrackingObject) {
-            writeLog("Mautic Library already active. Starting sync loop...");
-            startSyncHandshake(email, tags);
-            return;
-        }
-
-        writeLog("Initializing Mautic Library...");
-
-        (function(w,d,t,u,n,a,m){
-            w['MauticTrackingObject']=n;
-            w[n]=w[n]||function(){(w[n].q=w[n].q||[]).push(arguments)},
-            a=d.createElement(t),
-            m=d.getElementsByTagName(t)[0];
-            a.async=1; a.src=u; 
+            printLog(`🏁 Response status flags returned: ${response.status} ${response.statusText}`);
             
-            a.onload = function() {
-                writeLog("Library Loaded completely.");
-                startSyncHandshake(email, tags);
-            };
+            const textResponse = await response.text();
             
-            m.parentNode.insertBefore(a,m);
-        })(window,document,'script','https://d2.restaurantassociation.com/mtc.js','mt');
+            // Try formatting as JSON if returned that way, else drop raw response tracking info text string straight into logs
+            try {
+                const jsonResponse = JSON.parse(textResponse);
+                printLog("📥 Extracted Clean Server Data Object:", jsonResponse);
+            } catch (e) {
+                printLog("📥 Raw Context Payload returned directly from Mautic instance:", textResponse);
+            }
+
+            printLog("✨ Force target data update successfully processed on endpoint transaction channel.");
+
+        } catch (error) {
+            printLog(`❌ Execution exception occurred while writing to server stream: ${error.message}`);
+        }
     }
 </script>
 
